@@ -43,3 +43,38 @@ async function uploadFile() {
 }
 
 uploadFile();
+
+async function deleteFile() {
+  try {
+    const response = await drive.files.delete({
+      fileId: "1InU48x8Lry1pO_KlLrgSKPc6zOG2B9Ac",
+    });
+    console.log(response.data, "deletado");
+  } catch (err) {
+    console.log("Erro para deletar imagem", err);
+  }
+}
+
+// deleteFile();
+
+// async function generatePublicUrl() {
+//   try {
+//     const fileId = "1InU48x8Lry1pO_KlLrgSKPc6zOG2B9Ac";
+//     await drive.permissions.create({
+//       fileId: fileId,
+//       requestBody: {
+//         role: "reader",
+//         type: "anyone",
+//       },
+//     });
+
+//     const result = await drive.files.get({
+//       fileId: fileId,
+//       fields: "webViewLink, webContentLink",
+//     });
+
+//     console.log(result.data);
+//   } catch (err) {
+//     console.log("Erro para gerar url publica", err);
+//   }
+// }
