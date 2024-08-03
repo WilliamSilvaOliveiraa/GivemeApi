@@ -42,7 +42,7 @@ async function uploadFile() {
   }
 }
 
-uploadFile();
+// uploadFile();
 
 async function deleteFile() {
   try {
@@ -57,24 +57,26 @@ async function deleteFile() {
 
 // deleteFile();
 
-// async function generatePublicUrl() {
-//   try {
-//     const fileId = "1InU48x8Lry1pO_KlLrgSKPc6zOG2B9Ac";
-//     await drive.permissions.create({
-//       fileId: fileId,
-//       requestBody: {
-//         role: "reader",
-//         type: "anyone",
-//       },
-//     });
+async function generatePublicUrl() {
+  try {
+    const fileId = "1Zuqb9oxFw8HKPyfXTSsakA4700agdudF";
+    await drive.permissions.create({
+      fileId: fileId,
+      requestBody: {
+        role: "reader",
+        type: "anyone",
+      },
+    });
 
-//     const result = await drive.files.get({
-//       fileId: fileId,
-//       fields: "webViewLink, webContentLink",
-//     });
+    const result = await drive.files.get({
+      fileId: fileId,
+      fields: "webViewLink, webContentLink",
+    });
 
-//     console.log(result.data);
-//   } catch (err) {
-//     console.log("Erro para gerar url publica", err);
-//   }
-// }
+    console.log(result.data);
+  } catch (err) {
+    console.log("Erro para gerar url publica", err);
+  }
+}
+
+generatePublicUrl();
