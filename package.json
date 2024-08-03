@@ -1,0 +1,9 @@
+{
+  "name": "Google_Drive_API_Crud",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "dependencies": {
+    "googleapis": "^140.0.1"
+  }
+}
