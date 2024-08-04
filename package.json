@@ -1,7 +1,7 @@
 {
   "name": "GoogleDriveAPICrud",
   "version": "1.0.0",
-  "main": "app.js",
+  "main": "server.js",
   "license": "MIT",
   "scripts": {
     "start": "node app.js",
