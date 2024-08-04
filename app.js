@@ -1,7 +1,7 @@
 /* imports */
 const express = require("express");
 const mongoose = require("mongoose");
-// const bcrypt = require("bcryptjs");
+const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { google } = require("googleapis");
 const path = require("path");
@@ -17,12 +17,17 @@ const refresh_token = process.env.REFRESH_TOKEN;
 /* app config */
 const app = express();
 
+//Middleware
+app.use(express.json());
+
+//Models
+const User = require("./models/User");
+
 //Credentials
 const dbUser = process.env.DB_USER;
 const dbPassword = process.env.DB_PASS;
 
 mongoose
-
   .connect(
     // console.log(dbUser, dbPassword),
     `mongodb+srv://${dbUser}:${dbPassword}@jwt.uhtowq0.mongodb.net/?retryWrites=true&w=majority&appName=JWT`
@@ -30,8 +35,49 @@ mongoose
   .then(() => console.log("Connected to MongoDB"))
   .catch((err) => console.log(err));
 
-app.listen(3000, () => console.log("Server is running"));
+// Register Schema
+app.post("/auth/register", async (req, res) => {
+  const { name, email, password, confirmpassword } = req.body;
 
+  //validation
+  if (!name || !email || !password || !confirmpassword) {
+    return res
+      .status(422)
+      .json({ Erro: "Porfavor, preencha todos os campos..." });
+  }
+  if (password !== confirmpassword) {
+    return res.status(422).json({ Erro: "As senhas não são iguais..." });
+  }
+
+  //usuario checagem
+  const userExist = await User.findOne({ email: email });
+
+  if (userExist) {
+    return res.status(422).json({ Erro: "Email já cadastrado..." });
+  }
+
+  //senha metodo
+  const salt = await bcrypt.genSalt(10);
+  console.log("bate aq", salt);
+  const hashPassword = await bcrypt.hash(password, salt);
+
+  //salvar usuario
+  const user = new User({
+    name,
+    email,
+    password: hashPassword,
+  });
+
+  try {
+    await user.save();
+    res.status(201).json({ message: "Usuario registrado com sucesso..." });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ message: err });
+  }
+});
+
+app.listen(3000, () => console.log("Server is running"));
 app.get("/", (req, res) => {
   res.status(200).json({ message: "Hello World" });
   // res.send("Hello World");
