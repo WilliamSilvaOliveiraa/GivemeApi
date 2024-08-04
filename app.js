@@ -1,7 +1,7 @@
 /* imports */
 const express = require("express");
 const mongoose = require("mongoose");
-const bcrypt = require("bcryptjs");
+// const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { google } = require("googleapis");
 const path = require("path");
@@ -16,7 +16,26 @@ const refresh_token = process.env.REFRESH_TOKEN;
 
 /* app config */
 const app = express();
+
+//Credentials
+const dbUser = process.env.DB_USER;
+const dbPassword = process.env.DB_PASS;
+
+mongoose
+
+  .connect(
+    // console.log(dbUser, dbPassword),
+    `mongodb+srv://${dbUser}:${dbPassword}@jwt.uhtowq0.mongodb.net/?retryWrites=true&w=majority&appName=JWT`
+  )
+  .then(() => console.log("Connected to MongoDB"))
+  .catch((err) => console.log(err));
+
 app.listen(3000, () => console.log("Server is running"));
+
+app.get("/", (req, res) => {
+  res.status(200).json({ message: "Hello World" });
+  // res.send("Hello World");
+});
 
 const oauth2Client = new google.auth.OAuth2(
   client_id,
@@ -86,4 +105,4 @@ async function generatePublicUrl() {
   }
 }
 
-generatePublicUrl();
+// generatePublicUrl();
