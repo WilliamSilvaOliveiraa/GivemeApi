@@ -35,6 +35,43 @@ mongoose
   .then(() => console.log("Connected to MongoDB"))
   .catch((err) => console.log(err));
 
+//Login Schema
+app.post("/auth/login", async (req, res) => {
+  const { email, password } = req.body;
+
+  // Validation
+  if (!email || !password) {
+    return res
+      .status(422)
+      .json({ Erro: "Porfavor, preencha todos os campos..." });
+  }
+
+  // User check
+  const user = await User.findOne({ email });
+  if (!user) {
+    return res.status(422).json({ Erro: "Usuario nao encontrado" });
+  }
+
+  // Password check
+  const isMatch = await bcrypt.compare(password, user.password);
+  if (!isMatch) {
+    return res.status(422).json({ Erro: "Senha incorreta..." });
+  }
+
+  try {
+    const secret = process.env.SECRET;
+    const token = jwt.sign({ userId: user._id }, secret);
+
+    // Return token and message in the response body
+    return res
+      .status(200)
+      .json({ token: token, message: "Login efetuado com sucesso" });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "Erro ao efetuar login" });
+  }
+});
+
 // Register Schema
 app.post("/auth/register", async (req, res) => {
   const { name, email, password, confirmpassword } = req.body;
@@ -152,3 +189,14 @@ async function generatePublicUrl() {
 }
 
 // generatePublicUrl();
+
+//private route
+app.get("/auth/user:id", async (req, res) => {
+  const token = req.params.id;
+
+  //check if user exist
+
+  if (!token) {
+    return res.status(401).json({ Erro: "Nao autorizado" });
+  }
+});
