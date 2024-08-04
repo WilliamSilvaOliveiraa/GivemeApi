@@ -103,6 +103,7 @@ app.post("/auth/register", async (req, res) => {
     name,
     email,
     password: hashPassword,
+    uploadCount: 3, // Definir valor inicial aqui, se necessário
   });
 
   try {
@@ -130,13 +131,17 @@ oauth2Client.setCredentials({ refresh_token: refresh_token });
 
 const drive = google.drive({ version: "v3", auth: oauth2Client });
 
-const filePath = path.join(__dirname, "teste.png");
+const filePath = path.resolve(__dirname, "teste.png");
 
-async function uploadFile() {
+fs.access(filePath, fs.constants.F_OK, (err) => {
+  console.log(`${filePath} ${err ? "não existe" : "existe"}`);
+});
+
+async function uploadFile(fileName, filePath) {
   try {
     const response = await drive.files.create({
       requestBody: {
-        name: "teste.png",
+        name: fileName,
         mimeType: "image/png",
       },
       media: {
@@ -145,12 +150,13 @@ async function uploadFile() {
       },
     });
 
-    console.log(response.data);
+    console.log("Upload bem-sucedido:", response.data);
+    return response.data;
   } catch (err) {
     console.log("Erro para dar upload na imagem", err);
+    throw err;
   }
 }
-
 // uploadFile();
 
 async function deleteFile() {
@@ -223,10 +229,40 @@ function checkToken(req, res, next) {
 
   try {
     const secret = process.env.SECRET;
-    jwt.verify(token, secret);
+    const verified = jwt.verify(token, secret);
+    req.userId = verified.userId; // Adiciona o userId ao objeto req
     next();
   } catch (err) {
     console.error(err);
     return res.status(500).json({ Erro: "Erro ao verificar token" });
   }
 }
+
+app.post("/upload", checkToken, async (req, res) => {
+  const userId = req.userId; // ID do usuário extraído pelo middleware checkToken
+  const { fileName, filePath } = req.body; // Supondo que o nome e caminho do arquivo sejam passados no corpo da requisição
+
+  try {
+    const user = await User.findById(userId);
+
+    if (user.uploadCount > 0) {
+      // Permitir upload e chamar a função uploadFile
+      const uploadResponse = await uploadFile(fileName, filePath);
+
+      // Diminuir o contador de uploads
+      user.uploadCount -= 1;
+      await user.save();
+
+      res.status(200).json({
+        message: "Upload realizado com sucesso",
+        uploadsRestantes: user.uploadCount,
+        uploadInfo: uploadResponse,
+      });
+    } else {
+      res.status(403).json({ Erro: "Limite de uploads atingido" });
+    }
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ Erro: "Erro ao processar o upload" });
+  }
+});

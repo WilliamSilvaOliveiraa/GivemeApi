@@ -17,6 +17,10 @@ const User = mongoose.model("User", {
     type: String,
     required: false,
   },
+  uploadCount: {
+    type: Number,
+    default: 3,
+  },
 });
 
 module.exports = User;
