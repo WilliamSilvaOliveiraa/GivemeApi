@@ -191,12 +191,42 @@ async function generatePublicUrl() {
 // generatePublicUrl();
 
 //private route
-app.get("/auth/user:id", async (req, res) => {
-  const token = req.params.id;
 
-  //check if user exist
+app.get("/auth/user/:id", checkToken, async (req, res) => {
+  const { id } = req.params;
 
-  if (!token) {
-    return res.status(401).json({ Erro: "Nao autorizado" });
+  // Check if the ID is a valid ObjectId
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ Erro: "ID inválido" });
+  }
+
+  try {
+    const user = await User.findById(id, "-password");
+    if (!user) {
+      return res.status(422).json({ Erro: "Usuario não encontrado" });
+    }
+
+    res.status(200).json(user);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ Erro: "Erro ao buscar usuário" });
   }
 });
+
+function checkToken(req, res, next) {
+  const authHeader = req.headers["authorization"];
+  const token = authHeader && authHeader.split(" ")[1];
+
+  if (!token) {
+    return res.status(401).json({ Erro: "Acesso negado" });
+  }
+
+  try {
+    const secret = process.env.SECRET;
+    jwt.verify(token, secret);
+    next();
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ Erro: "Erro ao verificar token" });
+  }
+}
