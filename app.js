@@ -1,15 +1,22 @@
+/* imports */
+const express = require("express");
+const mongoose = require("mongoose");
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 const { google } = require("googleapis");
 const path = require("path");
 const fs = require("fs");
-
 require("dotenv").config();
 
-console.log("rodou");
-
+/* variables */
 const client_id = process.env.CLIENT_ID;
 const client_secret = process.env.CLIENT_SECRET;
 const redirect_uri = process.env.REDIRECT_URI;
 const refresh_token = process.env.REFRESH_TOKEN;
+
+/* app config */
+const app = express();
+app.listen(3000, () => console.log("Server is running"));
 
 const oauth2Client = new google.auth.OAuth2(
   client_id,
