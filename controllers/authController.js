@@ -1,7 +1,10 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
-const RefreshToken = require("../models/RefreshToken"); // Adicione esta linha
+const RefreshToken = require("../models/RefreshToken");
+const dns = require("dns");
+const { promisify } = require("util");
+const resolveMx = promisify(dns.resolveMx);
 
 if (!process.env.SECRET || !process.env.REFRESH_TOKEN) {
   console.error(
@@ -61,6 +64,13 @@ exports.register = async (req, res) => {
       .status(422)
       .json({ erro: "Por favor, preencha todos os campos..." });
   }
+
+  // Validação básica de formato de email
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return res.status(422).json({ erro: "Formato de email inválido." });
+  }
+
   if (password !== confirmpassword) {
     return res.status(422).json({ erro: "As senhas não são iguais..." });
   }
@@ -68,6 +78,20 @@ exports.register = async (req, res) => {
   const userExist = await User.findOne({ email });
   if (userExist) {
     return res.status(422).json({ erro: "Email já cadastrado..." });
+  }
+
+  // Verificação de domínio MX
+  try {
+    const domain = email.split("@")[1];
+    const mxRecords = await resolveMx(domain);
+    if (mxRecords.length === 0) {
+      return res.status(422).json({ erro: "Domínio de email inválido." });
+    }
+  } catch (error) {
+    console.error("Erro ao verificar domínio MX:", error);
+    return res
+      .status(422)
+      .json({ erro: "Não foi possível verificar o domínio do email." });
   }
 
   const salt = await bcrypt.genSalt(10);

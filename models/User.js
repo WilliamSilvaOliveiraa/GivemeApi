@@ -11,7 +11,7 @@ const userSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
   uploadCount: { type: Number, default: 3 },
-  uploads: [uploadSchema], // Adiciona um array de uploads
+  uploads: [uploadSchema],
 });
 
 module.exports = mongoose.model("User", userSchema);

@@ -1,4 +1,3 @@
-// routes/fileRoutes.js
 const express = require("express");
 const router = express.Router();
 const fileController = require("../controllers/fileController");
@@ -14,8 +13,11 @@ router.post(
   upload.single("file"),
   fileController.uploadFile
 );
-router.delete("/delete/:fileId", fileController.deleteFile);
-// router.get("/user/files", checkToken, fileController.getUserFileIds);
-router.get("/public-url/:fileId", fileController.generatePublicUrl);
+
+// Adicionando checkToken ao endpoint de deleção
+router.delete("/delete/:fileId", checkToken, fileController.deleteFile);
+
+// Considere adicionar checkToken aqui também, se for uma operação sensível
+router.get("/public-url/:fileId", checkToken, fileController.generatePublicUrl);
 
 module.exports = router;

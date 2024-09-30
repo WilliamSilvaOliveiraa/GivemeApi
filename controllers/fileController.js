@@ -62,39 +62,55 @@ exports.uploadFile = async (req, res) => {
 };
 
 exports.deleteFile = async (req, res) => {
-  const userId = req.userId; // Supondo que você tenha o ID do usuário na requisição
-  const fileId = req.params.fileId; // O ID do arquivo do Google Drive
+  const userId = req.userId;
+  const fileId = req.params.fileId;
 
   try {
-    // 1. Tenta deletar o arquivo do Google Drive
-    const response = await drive.files.delete({
-      fileId: fileId,
-    });
-
-    // 2. Agora, remova o arquivo do banco de dados
+    // 1. Encontre o usuário e verifique se o arquivo existe
     const user = await User.findById(userId);
-
     if (!user) {
       return res.status(404).json({ Erro: "Usuário não encontrado" });
     }
 
-    // Remove o upload do array `uploads`
-    user.uploads = user.uploads.filter((upload) => upload.fileId !== fileId);
+    const fileIndex = user.uploads.findIndex(
+      (upload) => upload.fileId === fileId
+    );
+    if (fileIndex === -1) {
+      return res
+        .status(404)
+        .json({ Erro: "Arquivo não encontrado no banco de dados do usuário" });
+    }
 
-    // Atualiza o contador de uploads restantes
+    // 2. Tenta deletar o arquivo do Google Drive
+    try {
+      await drive.files.delete({ fileId: fileId });
+    } catch (driveError) {
+      console.error("Erro ao deletar arquivo do Google Drive:", driveError);
+      // Se o erro for que o arquivo não foi encontrado, continuamos com a deleção no banco de dados
+      if (driveError.code !== 404) {
+        return res
+          .status(500)
+          .json({ Erro: "Erro ao deletar arquivo do Google Drive" });
+      }
+    }
+
+    // 3. Remove o upload do array `uploads`
+    user.uploads.splice(fileIndex, 1);
+
+    // 4. Atualiza o contador de uploads restantes
     user.uploadCount += 1;
 
-    // Salva as alterações no usuário
+    // 5. Salva as alterações no usuário
     await user.save();
 
     res.status(200).json({
       message:
         "Arquivo deletado com sucesso do Google Drive e do banco de dados",
-      data: response.data,
+      uploadsRestantes: user.uploadCount,
     });
   } catch (err) {
-    console.log("Erro ao deletar arquivo", err);
-    res.status(500).json({ Erro: "Erro ao deletar arquivo" });
+    console.error("Erro ao processar a deleção do arquivo:", err);
+    res.status(500).json({ Erro: "Erro ao processar a deleção do arquivo" });
   }
 };
 
