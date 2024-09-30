@@ -22,10 +22,19 @@ app.use(express.json());
 
 //Models
 const User = require("./models/User");
+const authRoutes = require("./routes/authRoutes");
+const fileRoutes = require("./routes/fileRoutes");
+const tokenRoutes = require("./routes/tokenRoutes");
 
 //Credentials
 const dbUser = process.env.DB_USER;
 const dbPassword = process.env.DB_PASS;
+
+const multer = require("multer");
+
+// Configuração do multer
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage });
 
 mongoose
   .connect(
@@ -35,90 +44,18 @@ mongoose
   .then(() => console.log("Connected to MongoDB"))
   .catch((err) => console.log(err));
 
-//Login Schema
-app.post("/auth/login", async (req, res) => {
-  const { email, password } = req.body;
+//AuthUser
+app.use("/auth", authRoutes);
 
-  // Validation
-  if (!email || !password) {
-    return res
-      .status(422)
-      .json({ Erro: "Porfavor, preencha todos os campos..." });
-  }
+//File
+app.use("/file", fileRoutes);
 
-  // User check
-  const user = await User.findOne({ email });
-  if (!user) {
-    return res.status(422).json({ Erro: "Usuario nao encontrado" });
-  }
-
-  // Password check
-  const isMatch = await bcrypt.compare(password, user.password);
-  if (!isMatch) {
-    return res.status(422).json({ Erro: "Senha incorreta..." });
-  }
-
-  try {
-    const secret = process.env.SECRET;
-    const token = jwt.sign({ userId: user._id }, secret);
-
-    // Return token and message in the response body
-    return res
-      .status(200)
-      .json({ token: token, message: "Login efetuado com sucesso" });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ message: "Erro ao efetuar login" });
-  }
-});
-
-// Register Schema
-app.post("/auth/register", async (req, res) => {
-  const { name, email, password, confirmpassword } = req.body;
-
-  //validation
-  if (!name || !email || !password || !confirmpassword) {
-    return res
-      .status(422)
-      .json({ Erro: "Porfavor, preencha todos os campos..." });
-  }
-  if (password !== confirmpassword) {
-    return res.status(422).json({ Erro: "As senhas não são iguais..." });
-  }
-
-  //usuario checagem
-  const userExist = await User.findOne({ email: email });
-
-  if (userExist) {
-    return res.status(422).json({ Erro: "Email já cadastrado..." });
-  }
-
-  //senha metodo
-  const salt = await bcrypt.genSalt(10);
-  console.log("bate aq", salt);
-  const hashPassword = await bcrypt.hash(password, salt);
-
-  //salvar usuario
-  const user = new User({
-    name,
-    email,
-    password: hashPassword,
-    uploadCount: 3, // Definir valor inicial aqui, se necessário
-  });
-
-  try {
-    await user.save();
-    res.status(201).json({ message: "Usuario registrado com sucesso..." });
-  } catch (err) {
-    console.log(err);
-    res.status(500).json({ message: err });
-  }
-});
+//Token
+app.use("/token", tokenRoutes);
 
 app.listen(3000, () => console.log("Server is running"));
 app.get("/", (req, res) => {
-  res.status(200).json({ message: "Hello World" });
-  // res.send("Hello World");
+  res.status(200).json({ message: "Estou funcionando!" });
 });
 
 const oauth2Client = new google.auth.OAuth2(
@@ -136,28 +73,6 @@ const filePath = path.resolve(__dirname, "teste.png");
 fs.access(filePath, fs.constants.F_OK, (err) => {
   console.log(`${filePath} ${err ? "não existe" : "existe"}`);
 });
-
-async function uploadFile(fileName, filePath) {
-  try {
-    const response = await drive.files.create({
-      requestBody: {
-        name: fileName,
-        mimeType: "image/png",
-      },
-      media: {
-        mimeType: "image/png",
-        body: fs.createReadStream(filePath),
-      },
-    });
-
-    console.log("Upload bem-sucedido:", response.data);
-    return response.data;
-  } catch (err) {
-    console.log("Erro para dar upload na imagem", err);
-    throw err;
-  }
-}
-// uploadFile();
 
 async function deleteFile() {
   try {
