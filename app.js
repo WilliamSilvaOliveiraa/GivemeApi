@@ -1,5 +1,6 @@
 /* imports */
 const express = require("express");
+const cors = require("cors");
 const mongoose = require("mongoose");
 require("dotenv").config();
 
@@ -8,9 +9,15 @@ const app = express();
 
 //Middleware
 app.use(express.json());
+app.use(cors());
 
-//Models
-const User = require("./models/User");
+app.use(
+  cors({
+    origin: "http://localhost:5173", // permite apenas esse domínio
+  })
+);
+
+//Routes
 const authRoutes = require("./routes/authRoutes");
 const fileRoutes = require("./routes/fileRoutes");
 const tokenRoutes = require("./routes/tokenRoutes");
