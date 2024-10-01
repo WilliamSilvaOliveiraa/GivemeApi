@@ -20,5 +20,7 @@ app.use("/auth", authRoutes);
 app.use("/users", userRoutes);
 app.use("/files", fileRoutes);
 
+const PORT = process.env.PORT;
+
 // Inicializar o servidor
-app.listen(3000, () => console.log("Server is running on port 3000"));
+app.listen(PORT, () => console.log(`Server is running on port ${PORT}`));
