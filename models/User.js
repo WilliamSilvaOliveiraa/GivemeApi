@@ -4,6 +4,7 @@ const uploadSchema = new mongoose.Schema({
   fileName: { type: String, required: true },
   fileId: { type: String, required: true },
   uploadDate: { type: Date, default: Date.now },
+  link: { type: String }, // Campo para armazenar a URL pública
 });
 
 const userSchema = new mongoose.Schema({

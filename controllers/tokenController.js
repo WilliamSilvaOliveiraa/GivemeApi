@@ -2,29 +2,31 @@ const jwt = require("jsonwebtoken");
 const RefreshToken = require("../models/RefreshToken"); // Ajuste o caminho conforme necessário
 
 exports.refreshToken = async (req, res) => {
-  const { token } = req.body;
+  const { refreshToken } = req.body;
 
-  if (!token) {
+  if (!refreshToken) {
     return res.status(401).json({ message: "Refresh token não fornecido" });
   }
 
   try {
-    const refreshToken = await RefreshToken.findOne({ token });
-    if (!refreshToken) {
+    const refreshTokenDoc = await RefreshToken.findOne({ token: refreshToken });
+    if (!refreshTokenDoc) {
       return res.status(403).json({ message: "Refresh token inválido" });
     }
 
     // Verifica se o refresh token é válido
-    jwt.verify(token, process.env.REFRESH_TOKEN, async (err, user) => {
+    jwt.verify(refreshToken, process.env.REFRESH_TOKEN, async (err, user) => {
       if (err) {
-        return res.sendStatus(403); // Token inválido
+        return res
+          .status(403)
+          .json({ message: "Refresh token inválido ou expirado" });
       }
 
       // Gera um novo access token
       const newAccessToken = jwt.sign(
         { userId: user.userId },
         process.env.SECRET,
-        { expiresIn: "15m" }
+        { expiresIn: "2m" }
       );
 
       res.json({ accessToken: newAccessToken });

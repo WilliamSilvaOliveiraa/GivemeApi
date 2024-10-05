@@ -17,19 +17,17 @@ exports.login = async (req, res) => {
   const { email, password } = req.body;
 
   if (!email || !password) {
-    return res
-      .status(422)
-      .json({ erro: "Por favor, preencha todos os campos..." });
+    return res.status(422).json({ erro: "Please fill in all fields..." });
   }
 
   const user = await User.findOne({ email });
   if (!user) {
-    return res.status(422).json({ erro: "Usuário não encontrado" });
+    return res.status(422).json({ erro: "User not found" });
   }
 
   const isMatch = await bcrypt.compare(password, user.password);
   if (!isMatch) {
-    return res.status(422).json({ erro: "Senha incorreta..." });
+    return res.status(422).json({ erro: "Incorrect password..." });
   }
 
   try {
@@ -46,13 +44,14 @@ exports.login = async (req, res) => {
     await RefreshToken.create({ token: refreshToken, user: user._id });
 
     return res.status(200).json({
+      userId: user._id,
       accessToken,
       refreshToken,
-      message: "Login efetuado com sucesso",
+      message: "Login successfully",
     });
   } catch (err) {
     console.error(err);
-    return res.status(500).json({ message: "Erro ao efetuar login" });
+    return res.status(500).json({ message: "Error when logging in" });
   }
 };
 
@@ -60,24 +59,22 @@ exports.register = async (req, res) => {
   const { name, email, password, confirmpassword } = req.body;
 
   if (!name || !email || !password || !confirmpassword) {
-    return res
-      .status(422)
-      .json({ erro: "Por favor, preencha todos os campos..." });
+    return res.status(422).json({ erro: "Please fill in all fields..." });
   }
 
   // Validação básica de formato de email
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(email)) {
-    return res.status(422).json({ erro: "Formato de email inválido." });
+    return res.status(422).json({ erro: "Invalid email format." });
   }
 
   if (password !== confirmpassword) {
-    return res.status(422).json({ erro: "As senhas não são iguais..." });
+    return res.status(422).json({ erro: "The passwords are not the same..." });
   }
 
   const userExist = await User.findOne({ email });
   if (userExist) {
-    return res.status(422).json({ erro: "Email já cadastrado..." });
+    return res.status(422).json({ erro: "Email already registered..." });
   }
 
   // Verificação de domínio MX
@@ -85,13 +82,11 @@ exports.register = async (req, res) => {
     const domain = email.split("@")[1];
     const mxRecords = await resolveMx(domain);
     if (mxRecords.length === 0) {
-      return res.status(422).json({ erro: "Domínio de email inválido." });
+      return res.status(422).json({ erro: "Invalid email domain." });
     }
   } catch (error) {
-    console.error("Erro ao verificar domínio MX:", error);
-    return res
-      .status(422)
-      .json({ erro: "Não foi possível verificar o domínio do email." });
+    // console.error("Erro ao verificar domínio MX:", error);
+    return res.status(422).json({ erro: "Unable to verify email domain." });
   }
 
   const salt = await bcrypt.genSalt(10);
@@ -105,25 +100,48 @@ exports.register = async (req, res) => {
   });
 
   try {
-    await user.save();
-    res.status(201).json({ message: "Usuário registrado com sucesso..." });
+    const savedUser = await user.save();
+
+    // Gerar tokens de acesso e atualização
+    const accessToken = jwt.sign(
+      { userId: savedUser._id },
+      process.env.SECRET,
+      {
+        expiresIn: "15m",
+      }
+    );
+    const refreshToken = jwt.sign(
+      { userId: savedUser._id },
+      process.env.REFRESH_TOKEN,
+      { expiresIn: "7d" }
+    );
+
+    // Salvar o refresh token no banco de dados
+    await RefreshToken.create({ token: refreshToken, user: savedUser._id });
+
+    res.status(201).json({
+      message: "User registered successfully...",
+      userId: savedUser._id,
+      accessToken,
+      refreshToken,
+    });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "Erro ao registrar usuário" });
+    res.status(500).json({ message: "Error registering user" });
   }
 };
 
 exports.logout = async (req, res) => {
   const { refreshToken } = req.body;
   if (!refreshToken) {
-    return res.status(400).json({ message: "Refresh token é necessário" });
+    return res.status(400).json({ message: "Refresh token is required" });
   }
 
   try {
     await RefreshToken.findOneAndDelete({ token: refreshToken });
-    res.status(200).json({ message: "Logout realizado com sucesso" });
+    res.status(200).json({ message: "Logout completed successfully" });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "Erro ao realizar logout" });
+    res.status(500).json({ message: "Error when logging out" });
   }
 };
