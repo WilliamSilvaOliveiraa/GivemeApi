@@ -1,5 +1,3 @@
-const fs = require("fs");
-const path = require("path");
 const { drive } = require("../config/googleConfig");
 const User = require("../models/User");
 const { Readable } = require("stream");
@@ -16,15 +14,35 @@ exports.uploadFile = async (req, res) => {
     const user = await User.findById(userId);
 
     if (user.uploadCount > 0) {
+      let folderId;
+      const folderName = `${user.name}_${userId}`;
+
+      const folderResponse = await drive.files.list({
+        q: `name='${folderName}' and mimeType='application/vnd.google-apps.folder'`,
+        fields: "files(id, name)",
+      });
+
+      if (folderResponse.data.files.length > 0) {
+        folderId = folderResponse.data.files[0].id;
+      } else {
+        const folderResponse = await drive.files.create({
+          requestBody: {
+            name: folderName,
+            mimeType: "application/vnd.google-apps.folder",
+          },
+        });
+        folderId = folderResponse.data.id;
+      }
+
       const bufferStream = new Readable();
       bufferStream.push(file.buffer);
       bufferStream.push(null);
 
-      // Faz upload do arquivo para o Google Drive
       const response = await drive.files.create({
         requestBody: {
           name: file.originalname,
           mimeType: file.mimetype,
+          parents: [folderId],
         },
         media: {
           mimeType: file.mimetype,
@@ -34,7 +52,6 @@ exports.uploadFile = async (req, res) => {
 
       const fileId = response.data.id;
 
-      // Gera a URL pública para o arquivo
       await drive.permissions.create({
         fileId: fileId,
         requestBody: {
@@ -50,17 +67,14 @@ exports.uploadFile = async (req, res) => {
 
       const publicUrl = result.data.webViewLink;
 
-      // Criar um novo objeto de upload com as informações do arquivo e URL
       const newUpload = {
         fileName: file.originalname,
         fileId: fileId,
-        link: publicUrl, // Atribui a URL pública
+        link: publicUrl,
         uploadDate: new Date(),
       };
 
-      // Adicionar o novo upload ao array de uploads do usuário
       user.uploads.push(newUpload);
-
       user.uploadCount -= 1;
       await user.save();
 

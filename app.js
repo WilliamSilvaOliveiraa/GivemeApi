@@ -1,7 +1,7 @@
 /* imports */
 const express = require("express");
 const cors = require("cors");
-const mongoose = require("mongoose");
+const { connectDB } = require("./config/dbConfig");
 require("dotenv").config();
 
 /* app config */
@@ -13,9 +13,12 @@ app.use(cors());
 
 app.use(
   cors({
-    origin: "http://localhost:5173", // permite apenas esse domínio
+    origin: "http://localhost:5173",
   })
 );
+
+// Conexão com o banco de dados
+connectDB();
 
 //Routes
 const authRoutes = require("./routes/authRoutes");
@@ -24,27 +27,12 @@ const tokenRoutes = require("./routes/tokenRoutes");
 const UserRoutes = require("./routes/userRoutes");
 
 //Credentials
-const dbUser = process.env.DB_USER;
-const dbPassword = process.env.DB_PASS;
 const PORT = process.env.PORT;
 
-mongoose
-  .connect(
-    `mongodb+srv://${dbUser}:${dbPassword}@jwt.uhtowq0.mongodb.net/?retryWrites=true&w=majority&appName=JWT`
-  )
-  .then(() => console.log("Connected to MongoDB"))
-  .catch((err) => console.log(err));
-
-//AuthUser
+// Routes
 app.use("/auth", authRoutes);
-
-//File
 app.use("/file", fileRoutes);
-
-//Token
 app.use("/token", tokenRoutes);
-
-//User
 app.use("/user", UserRoutes);
 
 app.listen(PORT, () => console.log(`Server is running on port ${PORT}`));

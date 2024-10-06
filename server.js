@@ -1,12 +1,13 @@
 const express = require("express");
-const mongoose = require("mongoose");
+const { connectDB } = require("./config/dbConfig");
+
 require("dotenv").config();
 
-// Importar configurações e rotas
+//Routes
 const authRoutes = require("./routes/authRoutes");
-const userRoutes = require("./routes/userRoutes");
 const fileRoutes = require("./routes/fileRoutes");
-const { connectDB } = require("./config/dbConfig");
+const tokenRoutes = require("./routes/tokenRoutes");
+const UserRoutes = require("./routes/userRoutes");
 
 // Inicializar o app
 const app = express();
@@ -15,10 +16,11 @@ app.use(express.json());
 // Conectar ao MongoDB
 connectDB();
 
-// Configurar rotas
+// Routes
 app.use("/auth", authRoutes);
-app.use("/users", userRoutes);
-app.use("/files", fileRoutes);
+app.use("/file", fileRoutes);
+app.use("/token", tokenRoutes);
+app.use("/user", UserRoutes);
 
 const PORT = process.env.PORT;
 

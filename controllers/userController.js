@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 
 exports.getUserById = async (req, res) => {
   const { id } = req.params;
-  console.log("ID recebido:", id);
+  // console.log("ID recebido:", id);
 
   if (!mongoose.Types.ObjectId.isValid(id)) {
     return res.status(400).json({ Erro: "ID inválido" });
