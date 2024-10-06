@@ -2,9 +2,12 @@
   "name": "GoogleDriveAPICrud",
   "version": "1.0.0",
   "main": "server.js",
+  "engines": {
+    "node": "16.x"
+  },
   "license": "MIT",
   "scripts": {
-    "start": "nodemon server.js",
+    "start": "node app.js",
     "build": "tsc",
     "dev": "nodemon app.js"
   },
