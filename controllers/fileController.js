@@ -3,41 +3,91 @@ const User = require("../models/User");
 const { Readable } = require("stream");
 
 exports.uploadFile = async (req, res) => {
+  console.log("[DEBUG] Starting uploadFile function");
   const userId = req.userId;
   const file = req.file;
 
+  console.log(`[DEBUG] User ID: ${userId}`);
+  console.log(`[DEBUG] File info:`, file);
+
   if (!file) {
-    return res.status(400).json({ Erro: "No files sent" });
+    console.log("[DEBUG] No file sent");
+    return res.status(400).json({ error: "No files sent" });
   }
 
   try {
+    console.log(`[DEBUG] Finding user with ID: ${userId}`);
     const user = await User.findById(userId);
 
-    if (user.uploadCount > 0) {
-      let folderId;
-      const folderName = `${user.name}_${userId}`;
+    if (!user) {
+      console.error(`[ERROR] User not found for ID: ${userId}`);
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    console.log(`[DEBUG] User found:`, user);
+
+    if (user.uploadCount <= 0) {
+      console.log(`[DEBUG] Upload limit reached for user ${userId}`);
+      return res.status(403).json({ error: "Upload limit reached (3)" });
+    }
+
+    // Create or get folder
+    const folderName = `${user.name}_${userId}`;
+    let folderId;
+
+    try {
+      console.log(`[DEBUG] Searching for folder: ${folderName}`);
 
       const folderResponse = await drive.files.list({
         q: `name='${folderName}' and mimeType='application/vnd.google-apps.folder'`,
         fields: "files(id, name)",
       });
 
+      console.log(
+        "[DEBUG] Folder search response:",
+        JSON.stringify(folderResponse.data)
+      );
+
       if (folderResponse.data.files.length > 0) {
         folderId = folderResponse.data.files[0].id;
+        console.log(`[DEBUG] Existing folder found with ID: ${folderId}`);
       } else {
-        const folderResponse = await drive.files.create({
+        console.log(
+          `[DEBUG] Folder not found. Attempting to create new folder: ${folderName}`
+        );
+
+        const newFolderResponse = await drive.files.create({
           requestBody: {
             name: folderName,
             mimeType: "application/vnd.google-apps.folder",
           },
         });
-        folderId = folderResponse.data.id;
-      }
+        folderId = newFolderResponse.data.id;
 
+        console.log(`[DEBUG] New folder created with ID: ${folderId}`);
+      }
+    } catch (folderError) {
+      console.error("[ERROR] Detailed error handling folder:", folderError);
+      console.error("[ERROR] Error stack:", folderError.stack);
+      if (folderError.response) {
+        console.error("[ERROR] Error response:", folderError.response.data);
+      }
+      return res
+        .status(500)
+        .json({
+          error: "Error creating/accessing folder",
+          details: folderError.message,
+        });
+    }
+
+    // Upload file
+    try {
+      console.log("[DEBUG] Starting file upload process");
       const bufferStream = new Readable();
       bufferStream.push(file.buffer);
       bufferStream.push(null);
 
+      console.log("[DEBUG] Creating file in Google Drive");
       const response = await drive.files.create({
         requestBody: {
           name: file.originalname,
@@ -51,7 +101,9 @@ exports.uploadFile = async (req, res) => {
       });
 
       const fileId = response.data.id;
+      console.log(`[DEBUG] File created with ID: ${fileId}`);
 
+      console.log("[DEBUG] Setting file permissions");
       await drive.permissions.create({
         fileId: fileId,
         requestBody: {
@@ -60,12 +112,14 @@ exports.uploadFile = async (req, res) => {
         },
       });
 
+      console.log("[DEBUG] Getting file public URL");
       const result = await drive.files.get({
         fileId: fileId,
         fields: "webViewLink, webContentLink",
       });
 
       const publicUrl = result.data.webViewLink;
+      console.log(`[DEBUG] Public URL: ${publicUrl}`);
 
       const newUpload = {
         fileName: file.originalname,
@@ -74,25 +128,43 @@ exports.uploadFile = async (req, res) => {
         uploadDate: new Date(),
       };
 
+      console.log("[DEBUG] Updating user document");
       user.uploads.push(newUpload);
       user.uploadCount -= 1;
       await user.save();
 
-      res.status(200).json({
+      console.log("[DEBUG] Upload process completed successfully");
+      return res.status(200).json({
         message: "Upload completed successfully",
-        uploadsRestantes: user.uploadCount,
+        uploadsRemaining: user.uploadCount,
         uploadInfo: {
           ...response.data,
           link: publicUrl,
           localUploadId: newUpload._id,
         },
       });
-    } else {
-      res.status(403).json({ Erro: "Upload limit reached (3)" });
+    } catch (uploadError) {
+      console.error("[ERROR] Error during file upload:", uploadError);
+      console.error("[ERROR] Error stack:", uploadError.stack);
+      if (uploadError.response) {
+        console.error("[ERROR] Error response:", uploadError.response.data);
+      }
+      return res
+        .status(500)
+        .json({
+          error: "Error uploading file to Google Drive",
+          details: uploadError.message,
+        });
     }
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ Erro: "Error processing the upload" });
+    console.error("[ERROR] Unexpected error during upload process:", err);
+    console.error("[ERROR] Error stack:", err.stack);
+    return res
+      .status(500)
+      .json({
+        error: "Unexpected error during upload process",
+        details: err.message,
+      });
   }
 };
 
