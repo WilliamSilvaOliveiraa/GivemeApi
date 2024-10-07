@@ -13,8 +13,7 @@ app.use(cors());
 
 app.use(
   cors({
-    origin:
-      "https://givemefront-2i0pa422v-williamsilvaoliveiraas-projects.vercel.app",
+    origin: "https://giveme-seven.vercel.app",
   })
 );
 
