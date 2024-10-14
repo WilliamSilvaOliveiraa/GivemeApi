@@ -13,7 +13,7 @@ app.use(cors());
 
 app.use(
   cors({
-    origin: "https://giveme-seven.vercel.app",
+    origin: "http://localhost:5173",
   })
 );
 
@@ -25,6 +25,7 @@ const authRoutes = require("./routes/authRoutes");
 const fileRoutes = require("./routes/fileRoutes");
 const tokenRoutes = require("./routes/tokenRoutes");
 const UserRoutes = require("./routes/userRoutes");
+const GoogleRoutes = require("./routes/googleRoutes");
 
 //Credentials
 const PORT = process.env.PORT;
@@ -34,6 +35,7 @@ app.use("/auth", authRoutes);
 app.use("/file", fileRoutes);
 app.use("/token", tokenRoutes);
 app.use("/user", UserRoutes);
+app.use("/google", GoogleRoutes);
 
 app.listen(PORT, () => console.log(`Server is running on port ${PORT}`));
 app.get("/", (req, res) => {
