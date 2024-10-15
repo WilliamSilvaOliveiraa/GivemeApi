@@ -2,7 +2,6 @@ const express = require("express");
 const router = express.Router();
 const { getAuthUrl, handleCallback } = require("../config/googleConfig");
 
-// Rota para obter a URL de autorização
 router.post("/getAuthUrl", (req, res) => {
   try {
     const authUrl = getAuthUrl();
@@ -13,15 +12,22 @@ router.post("/getAuthUrl", (req, res) => {
   }
 });
 
-// Rota para lidar com o callback
 router.post("/handleCallback", async (req, res) => {
+  console.log("Corpo da requisição recebida:", req.body);
   try {
     const { code } = req.body;
-    const refreshToken = await handleCallback(code);
-    res.json({ refreshToken });
+    if (!code) {
+      return res
+        .status(400)
+        .json({ error: "Código de autorização não fornecido" });
+    }
+    const tokens = await handleCallback(code);
+    res.json(tokens);
   } catch (error) {
     console.error("Erro no callback:", error);
-    res.status(500).json({ error: "Erro na autenticação" });
+    res
+      .status(500)
+      .json({ error: "Erro na autenticação", details: error.message });
   }
 });
 
