@@ -9,6 +9,11 @@ const oauth2Client = new google.auth.OAuth2(
   process.env.REDIRECT_URI
 );
 
+oauth2Client.setCredentials({
+  refresh_token: process.env.REFRESH_TOKEN,
+});
+
+// Função para gerar a URL de autenticação
 function getAuthUrl() {
   const scopes = [
     "https://www.googleapis.com/auth/drive",
@@ -27,6 +32,7 @@ function getAuthUrl() {
   return url;
 }
 
+// Função para lidar com o callback da autenticação e obter tokens
 async function handleCallback(code) {
   console.log("Código de autorização recebido:", code);
   try {
@@ -48,4 +54,7 @@ async function handleCallback(code) {
   }
 }
 
-module.exports = { getAuthUrl, handleCallback };
+// Instancia o serviço do Google Drive com o cliente autenticado
+const drive = google.drive({ version: "v3", auth: oauth2Client });
+
+module.exports = { getAuthUrl, handleCallback, drive };

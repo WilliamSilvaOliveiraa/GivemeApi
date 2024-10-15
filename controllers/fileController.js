@@ -48,7 +48,11 @@ exports.uploadFile = async (req, res) => {
         JSON.stringify(folderResponse.data)
       );
 
-      if (folderResponse.data.files.length > 0) {
+      if (
+        folderResponse.data &&
+        folderResponse.data.files &&
+        folderResponse.data.files.length > 0
+      ) {
         folderId = folderResponse.data.files[0].id;
         console.log(`[DEBUG] Existing folder found with ID: ${folderId}`);
       } else {
@@ -72,12 +76,10 @@ exports.uploadFile = async (req, res) => {
       if (folderError.response) {
         console.error("[ERROR] Error response:", folderError.response.data);
       }
-      return res
-        .status(500)
-        .json({
-          error: "Error creating/accessing folder",
-          details: folderError.message,
-        });
+      return res.status(500).json({
+        error: "Error creating/accessing folder",
+        details: folderError.message,
+      });
     }
 
     // Upload file
@@ -149,22 +151,18 @@ exports.uploadFile = async (req, res) => {
       if (uploadError.response) {
         console.error("[ERROR] Error response:", uploadError.response.data);
       }
-      return res
-        .status(500)
-        .json({
-          error: "Error uploading file to Google Drive",
-          details: uploadError.message,
-        });
+      return res.status(500).json({
+        error: "Error uploading file to Google Drive",
+        details: uploadError.message,
+      });
     }
   } catch (err) {
     console.error("[ERROR] Unexpected error during upload process:", err);
     console.error("[ERROR] Error stack:", err.stack);
-    return res
-      .status(500)
-      .json({
-        error: "Unexpected error during upload process",
-        details: err.message,
-      });
+    return res.status(500).json({
+      error: "Unexpected error during upload process",
+      details: err.message,
+    });
   }
 };
 
