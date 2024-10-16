@@ -62,7 +62,6 @@ GivemeApi/
 4. Inicie o servidor:
    ```
    yarn dev || npm run dev
-   
    ```
 
 ## Uso
